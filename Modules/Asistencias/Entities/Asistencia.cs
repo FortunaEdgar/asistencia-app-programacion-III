@@ -9,4 +9,5 @@ public class Asistencia
     public TimeOnly HoraEntrada { get; set; }
     public TimeOnly? HoraSalida { get; set; }
     public required string Estado { get; set; }
+    public string? Observacion { get; set; }
 }

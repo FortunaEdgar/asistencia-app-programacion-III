@@ -5,7 +5,7 @@ namespace AsistenciaApp.Modules.Asistencias.Dtos;
 public class CrearAsistenciaDto
 {
     [Required(ErrorMessage = "El codigo del empleado es obligatorio.")]
-    [stringLength(20, Minimumlegth = 3, ErrorMessage = "El codigo debe tener entre 3 y 20 caracteres.")]
+    [StringLength(20, MinimumLength = 3, ErrorMessage = "El codigo debe tener entre 3 y 20 caracteres.")]
     public string CodigoEmpleado { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "El nombre del empleado es obligatorio.")]

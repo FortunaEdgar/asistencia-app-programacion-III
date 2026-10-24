@@ -38,7 +38,7 @@ public class AsistenciaService
 
     public bool ExisteRegistro(string codigoEmpleado, DateOnly fecha, Guid? excluidId = null)
     {
-        return _asistencias.Any(a => a.CodigoEmpleado.Equals(codigoEmpleado.Trim(), StringComparrison.OrdinalIgnoreCase) && a.Fecha == fecha && a.Id != excluidId);
+        return _asistencias.Any(a => a.CodigoEmpleado.Equals(codigoEmpleado.Trim(), StringComparison.OrdinalIgnoreCase) && a.Fecha == fecha && a.Id != excluidId);
     }
 
     public Asistencia Create(CrearAsistenciaDto dto)
@@ -50,7 +50,7 @@ public class AsistenciaService
             Fecha = dto.Fecha!.Value,
             HoraEntrada = dto.HoraEntrada!.Value,
             HoraSalida = dto.HoraSalida,
-            Observacion = dto.Observacion?.Trim();
+            Observacion = dto.Observacion?.Trim(),
             Estado = CalcularEstado(dto.HoraEntrada!.Value)
         };
 
