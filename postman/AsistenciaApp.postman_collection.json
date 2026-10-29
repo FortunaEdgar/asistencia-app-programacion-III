@@ -2,68 +2,574 @@
   "info": {
     "_postman_id": "c20d705c-5a7a-4202-bdb0-23a6fed153ab",
     "name": "AsistenciaApp",
+    "description": "Pruebas de los endpoints de AsistenciaApp con persistencia en PostgreSQL (EF Core).\n\nEjecutar en orden con el Collection Runner: cada carpeta depende de las anteriores (el POST guarda el `id` que usan PATCH y DELETE).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "58178750"
   },
   "item": [
     {
-      "name": "http://localhost:3000/api/asistencias",
-      "event": [
+      "name": "Consultas",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.collectionVariables.set(\"id\", pm.response.json().id);\r",
-              ""
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "auth": {
-          "type": "noauth"
-        },
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "",
-          "options": {
-            "raw": {
-              "language": "json"
+          "name": "Listar asistencias",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const asistencias = pm.response.json();",
+                  "",
+                  "pm.test(\"Devuelve un arreglo\", () => pm.expect(asistencias).to.be.an(\"array\"));",
+                  "",
+                  "pm.test(\"Incluye los datos iniciales de la migracion\", () => {",
+                  "    const ids = asistencias.map(a => a.id);",
+                  "    pm.expect(ids).to.include(pm.collectionVariables.get(\"seedId\"));",
+                  "});"
+                ]
+              }
             }
-          }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          },
+          "response": []
         },
-        "url": {
-          "raw": ""
+        {
+          "name": "Obtener asistencia por id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test(\"Devuelve la asistencia de Ana Martinez\", () => {",
+                  "    const a = pm.response.json();",
+                  "    pm.expect(a.codigoEmpleado).to.eql(\"EMP-001\");",
+                  "    pm.expect(a.nombreEmpleado).to.eql(\"Ana Martinez\");",
+                  "    pm.expect(a.estado).to.eql(\"Presente\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/{{seedId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{seedId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener asistencia inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => pm.response.to.have.status(404));",
+                  "",
+                  "pm.test(\"Devuelve mensaje de error\", () => {",
+                  "    pm.expect(pm.response.json().mensaje).to.include(\"No existe una asistencia\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/{{idInexistente}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{idInexistente}}"]
+            }
+          },
+          "response": []
         }
-      },
-      "response": []
+      ]
+    },
+    {
+      "name": "Crear",
+      "item": [
+        {
+          "name": "Crear asistencia puntual",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Codigo unico por ejecucion para no chocar con el indice CodigoEmpleado + Fecha",
+                  "pm.collectionVariables.set(\"codigo\", \"EMP-\" + Date.now().toString().slice(-6));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "",
+                  "const a = pm.response.json();",
+                  "",
+                  "pm.test(\"Incluye cabecera Location\", () => pm.response.to.have.header(\"Location\"));",
+                  "",
+                  "pm.test(\"Entrada 08:05 se marca como Presente\", () => pm.expect(a.estado).to.eql(\"Presente\"));",
+                  "",
+                  "pm.test(\"Guarda los datos enviados\", () => {",
+                  "    pm.expect(a.codigoEmpleado).to.eql(pm.collectionVariables.get(\"codigo\"));",
+                  "    pm.expect(a.nombreEmpleado).to.eql(\"Maria Gomez\");",
+                  "    pm.expect(a.fecha).to.eql(\"2026-10-27\");",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set(\"id\", a.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"codigoEmpleado\": \"{{codigo}}\",\n    \"nombreEmpleado\": \"  Maria Gomez  \",\n    \"fecha\": \"2026-10-27\",\n    \"horaEntrada\": \"08:05:00\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear asistencia duplicada",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Mismo empleado en minusculas: la validacion no distingue mayusculas",
+                  "pm.variables.set(\"codigoMinusculas\", pm.collectionVariables.get(\"codigo\").toLowerCase());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"Rechaza el registro duplicado\", () => {",
+                  "    pm.expect(pm.response.json().mensaje).to.include(\"Ya existe un registro\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"codigoEmpleado\": \"{{codigoMinusculas}}\",\n    \"nombreEmpleado\": \"Maria Gomez\",\n    \"fecha\": \"2026-10-27\",\n    \"horaEntrada\": \"08:00:00\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear asistencia con fecha futura",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const manana = new Date();",
+                  "manana.setDate(manana.getDate() + 1);",
+                  "pm.variables.set(\"fechaFutura\", manana.toISOString().slice(0, 10));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"Rechaza la fecha futura\", () => {",
+                  "    pm.expect(pm.response.json().mensaje).to.include(\"fecha futura\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"codigoEmpleado\": \"EMP-900\",\n    \"nombreEmpleado\": \"Pedro Diaz\",\n    \"fecha\": \"{{fechaFutura}}\",\n    \"horaEntrada\": \"08:00:00\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear asistencia con salida antes de entrada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"Rechaza la hora de salida\", () => {",
+                  "    pm.expect(pm.response.json().mensaje).to.include(\"hora de salida\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"codigoEmpleado\": \"EMP-901\",\n    \"nombreEmpleado\": \"Pedro Diaz\",\n    \"fecha\": \"2026-10-20\",\n    \"horaEntrada\": \"09:00:00\",\n    \"horaSalida\": \"08:00:00\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear asistencia sin campos obligatorios",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"Informa los campos obligatorios\", () => {",
+                  "    const errors = pm.response.json().errors;",
+                  "    pm.expect(errors).to.have.property(\"CodigoEmpleado\");",
+                  "    pm.expect(errors).to.have.property(\"NombreEmpleado\");",
+                  "    pm.expect(errors).to.have.property(\"Fecha\");",
+                  "    pm.expect(errors).to.have.property(\"HoraEntrada\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Actualizar",
+      "item": [
+        {
+          "name": "Actualizar hora de entrada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const a = pm.response.json();",
+                  "",
+                  "pm.test(\"Entrada 08:30 recalcula el estado a Tardanza\", () => pm.expect(a.estado).to.eql(\"Tardanza\"));",
+                  "",
+                  "pm.test(\"Guarda la salida y la observacion\", () => {",
+                  "    pm.expect(a.horaSalida).to.eql(\"17:00:00\");",
+                  "    pm.expect(a.observacion).to.eql(\"Cita medica\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"horaEntrada\": \"08:30:00\",\n    \"horaSalida\": \"17:00:00\",\n    \"observacion\": \"Cita medica\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verificar cambios persistidos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test(\"Los cambios quedaron guardados en la base de datos\", () => {",
+                  "    const a = pm.response.json();",
+                  "    pm.expect(a.horaEntrada).to.eql(\"08:30:00\");",
+                  "    pm.expect(a.estado).to.eql(\"Tardanza\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/{{id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar sin campos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"Indica que no hay campos\", () => {",
+                  "    pm.expect(pm.response.json().mensaje).to.include(\"No se proporcionaron campos\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar a empleado y fecha ya registrados",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"Rechaza el registro duplicado\", () => {",
+                  "    pm.expect(pm.response.json().mensaje).to.include(\"Ya existe un registro\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"codigoEmpleado\": \"EMP-001\",\n    \"fecha\": \"2026-10-19\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar asistencia inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"observacion\": \"No deberia guardarse\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{idInexistente}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{idInexistente}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Eliminar",
+      "item": [
+        {
+          "name": "Eliminar asistencia",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test(\"Confirma la eliminacion\", () => {",
+                  "    pm.expect(pm.response.json().mensaje).to.include(\"eliminada correctamente\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/{{id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener asistencia eliminada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/{{id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar asistencia inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/{{idInexistente}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{idInexistente}}"]
+            }
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "event": [
     {
-      "listen": "prerequest",
-      "script": {
-        "type": "text/javascript",
-        "packages": {},
-        "requests": {},
-        "exec": [
-          ""
-        ]
-      }
-    },
-    {
       "listen": "test",
       "script": {
         "type": "text/javascript",
-        "packages": {},
-        "requests": {},
         "exec": [
-          ""
+          "pm.test(\"Responde en menos de 2 segundos\", () => pm.expect(pm.response.responseTime).to.be.below(2000));"
         ]
       }
     }
@@ -71,10 +577,22 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": ""
+      "value": "http://localhost:3000/api/asistencias"
+    },
+    {
+      "key": "seedId",
+      "value": "8f1c2b7a-3d4e-4f5a-9b6c-1a2b3c4d5e01"
+    },
+    {
+      "key": "idInexistente",
+      "value": "00000000-0000-0000-0000-000000000000"
     },
     {
       "key": "id",
+      "value": ""
+    },
+    {
+      "key": "codigo",
       "value": ""
     }
   ]
