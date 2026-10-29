@@ -7,12 +7,49 @@ Proyecto de **Lenguaje de Programación III** – UFHEC · Edgar Antonio Yan For
 ## Estructura
 
 ```
+Data/
+ └── AppDbContext.cs          # DbContext de EF Core (PostgreSQL)
+Migrations/                   # Migraciones generadas por EF Core
 Modules/Asistencias/
- ├── Controllers/
+ ├── Controllers/             # Endpoints HTTP y validaciones
  ├── Dtos/
  ├── Entities/
- ├── Services/
- └── AsistenciasModule.cs
+ ├── Repositories/            # Acceso a datos con AppDbContext
+ ├── Services/                # Lógica de negocio (cálculo del estado)
+ └── AsistenciaModule.cs      # Registro de dependencias (Scoped)
+```
+
+Flujo: `Controller → Service → Repository → AppDbContext → PostgreSQL`
+
+## Base de datos
+
+Paquetes usados:
+
+```
+dotnet add package Microsoft.EntityFrameworkCore
+dotnet add package Microsoft.EntityFrameworkCore.Design
+dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL
+```
+
+Contenedor de PostgreSQL:
+
+```shell
+docker run --name asistencia-postgres -e POSTGRES_PASSWORD=root -e POSTGRES_USER=root -e POSTGRES_DB=asistencia_db -dp 5435:5432 postgres:18
+```
+
+Cadena de conexión en `appsettings.json`:
+
+```json
+"ConnectionStrings": {
+  "postgresConnection": "Host=localhost;Port=5435;Database=asistencia_db;Username=root;Password=root"
+}
+```
+
+Migraciones:
+
+```shell
+dotnet ef migrations add InitialCreate
+dotnet ef database update
 ```
 
 ## Endpoints
