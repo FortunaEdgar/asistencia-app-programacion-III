@@ -71,3 +71,17 @@ El estado (`Presente` / `Tardanza`) se calcula automáticamente: la entrada hast
 ```cmd
 dotnet run
 ```
+
+## Pruebas con Postman
+
+La colección `postman/AsistenciaApp.postman_collection.json` tiene 16 peticiones con pruebas automáticas, organizadas en las carpetas Consultas, Crear, Actualizar y Eliminar. Cubre los casos válidos y las validaciones: duplicados, fecha futura, hora de salida, campos obligatorios y registros inexistentes.
+
+1. Levantar la API con `dotnet run`.
+2. Importar la colección en Postman.
+3. Ejecutarla completa y en orden con el **Collection Runner**: el POST guarda el `id` que usan PATCH y DELETE.
+
+También se puede ejecutar desde la terminal con Newman:
+
+```cmd
+npx newman run postman/AsistenciaApp.postman_collection.json
+```
