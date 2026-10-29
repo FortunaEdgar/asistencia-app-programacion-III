@@ -1,4 +1,5 @@
-﻿using AsistenciaApp.Modules.Asistencias.Services;
+﻿using AsistenciaApp.Modules.Asistencias.Repositories;
+using AsistenciaApp.Modules.Asistencias.Services;
 
 namespace AsistenciaApp.Modules.Asistencias;
 
@@ -6,7 +7,9 @@ public static class AsistenciaModule
 {
     public static IServiceCollection AddAsistenciasModule(this IServiceCollection services)
     {
-        services.AddSingleton<AsistenciaService>();
+        // Scoped: el DbContext vive por petición, así que repositorio y servicio también
+        services.AddScoped<AsistenciaRepository>();
+        services.AddScoped<AsistenciaService>();
         return services;
     }
 }

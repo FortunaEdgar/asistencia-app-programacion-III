@@ -1,44 +1,29 @@
 ﻿using AsistenciaApp.Modules.Asistencias.Dtos;
 using AsistenciaApp.Modules.Asistencias.Entities;
+using AsistenciaApp.Modules.Asistencias.Repositories;
 
 namespace AsistenciaApp.Modules.Asistencias.Services;
 
-public class AsistenciaService
+public class AsistenciaService(AsistenciaRepository asistenciaRepository)
 {
     private static readonly TimeOnly HoraOficialEntrada = new(8, 0);
     private const int MinutosTolerancia = 10;
 
-    private readonly List<Asistencia> _asistencias = [
-        new Asistencia {
-            CodigoEmpleado = "EMP-001",
-            NombreEmpleado = "Ana Martinez",
-            Fecha = new DateOnly(2026, 10, 19),
-            HoraEntrada = new TimeOnly(7, 55),
-            HoraSalida = new TimeOnly(17, 0),
-            Estado = "Presente"
-        },
-        new Asistencia {
-            CodigoEmpleado = "EMP-002",
-            NombreEmpleado = "Luis Perez",
-            Fecha = new DateOnly(2026, 10, 19),
-            HoraEntrada = new TimeOnly(8, 25),
-            Estado = "Tardanza",
-            Observacion = "Problemas de transporte"
-        }
-       ];
+    private readonly AsistenciaRepository _asistenciaRepository = asistenciaRepository;
+
     public List<Asistencia> FindAll()
     {
-        return _asistencias;
+        return _asistenciaRepository.FindAll();
     }
 
     public Asistencia? FindOne(Guid id)
     {
-        return _asistencias.FirstOrDefault(a => a.Id == id);
+        return _asistenciaRepository.FindOne(id);
     }
 
-    public bool ExisteRegistro(string codigoEmpleado, DateOnly fecha, Guid? excluidId = null)
+    public bool ExisteRegistro(string codigoEmpleado, DateOnly fecha, Guid? excluirId = null)
     {
-        return _asistencias.Any(a => a.CodigoEmpleado.Equals(codigoEmpleado.Trim(), StringComparison.OrdinalIgnoreCase) && a.Fecha == fecha && a.Id != excluidId);
+        return _asistenciaRepository.ExisteRegistro(codigoEmpleado, fecha, excluirId);
     }
 
     public Asistencia Create(CrearAsistenciaDto dto)
@@ -54,7 +39,7 @@ public class AsistenciaService
             Estado = CalcularEstado(dto.HoraEntrada!.Value)
         };
 
-        _asistencias.Add(asistencia);
+        _asistenciaRepository.Create(asistencia);
         return asistencia;
     }
 
@@ -74,6 +59,7 @@ public class AsistenciaService
             asistencia.Estado = CalcularEstado(dto.HoraEntrada.Value);
         }
 
+        _asistenciaRepository.Update(asistencia);
         return asistencia;
     }
 
@@ -82,7 +68,7 @@ public class AsistenciaService
         var asistencia = FindOne(id);
         if (asistencia is null) return null;
 
-        _asistencias.Remove(asistencia);
+        _asistenciaRepository.Remove(asistencia);
         return asistencia;
     }
 
